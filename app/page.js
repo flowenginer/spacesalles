@@ -38,49 +38,41 @@ export default function Home() {
     const ctx = audioCtxRef.current;
     const now = ctx.currentTime;
 
-    function playTone(freq, start, dur, vol) {
+    // Som de moedinha estilo Hotmart — duas notas ascendentes "plin-plin"
+    function playCoin(freq, start, dur, vol) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      const filter = ctx.createBiquadFilter();
-      osc.type = 'square';
+      osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, now + start);
-      osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + start + dur * 0.3);
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(3000, now + start);
-      filter.Q.setValueAtTime(2, now + start);
-      gain.gain.setValueAtTime(0, now + start);
-      gain.gain.linearRampToValueAtTime(vol, now + start + 0.01);
+      gain.gain.setValueAtTime(vol, now + start);
       gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
-      osc.connect(filter);
-      filter.connect(gain);
+      osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(now + start);
       osc.stop(now + start + dur);
     }
 
-    playTone(2200, 0, 0.12, 0.15);
-    playTone(3300, 0, 0.12, 0.1);
-    playTone(2800, 0.12, 0.2, 0.15);
-    playTone(4200, 0.12, 0.2, 0.1);
-    playTone(5200, 0.15, 0.3, 0.05);
-
-    const bufferSize = ctx.sampleRate * 0.15;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3) * 0.08;
+    // Harmônico sutil para dar brilho
+    function playHarmonic(freq, start, dur, vol) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + start);
+      gain.gain.setValueAtTime(vol, now + start);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + start);
+      osc.stop(now + start + dur);
     }
-    const noise = ctx.createBufferSource();
-    const noiseFilter = ctx.createBiquadFilter();
-    const noiseGain = ctx.createGain();
-    noise.buffer = buffer;
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.value = 4000;
-    noiseGain.gain.setValueAtTime(0.3, now + 0.3);
-    noise.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-    noise.start(now + 0.3);
+
+    // Nota 1 — B5 (988 Hz) com harmônico
+    playCoin(988, 0, 0.35, 0.25);
+    playHarmonic(1976, 0, 0.2, 0.08);
+
+    // Nota 2 — E6 (1319 Hz) com harmônico — "plin" mais agudo
+    playCoin(1319, 0.12, 0.45, 0.25);
+    playHarmonic(2638, 0.12, 0.25, 0.08);
   }
 
   // ── Handle new sale ──
