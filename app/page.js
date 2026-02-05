@@ -19,9 +19,12 @@ export default function Home() {
   const audioCtxRef = useRef(null);
   const newIdsRef = useRef(new Set());
 
+  const [selectedSound, setSelectedSound] = useState('coin');
   const [webhookUrl, setWebhookUrl] = useState('');
   useEffect(() => {
     setWebhookUrl(`${window.location.origin}/api/webhook`);
+    const saved = localStorage.getItem('spacesales-sound');
+    if (saved) setSelectedSound(saved);
   }, []);
 
   // ── Audio ──
@@ -32,47 +35,145 @@ export default function Home() {
     if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
   }
 
+  function tone(ctx, type, freq, start, dur, vol) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+    gain.gain.setValueAtTime(vol, ctx.currentTime + start);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime + start);
+    osc.stop(ctx.currentTime + start + dur);
+  }
+
+  function toneRamp(ctx, type, freqStart, freqEnd, start, dur, vol) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freqStart, ctx.currentTime + start);
+    osc.frequency.exponentialRampToValueAtTime(freqEnd, ctx.currentTime + start + dur * 0.3);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(3000, ctx.currentTime + start);
+    filter.Q.setValueAtTime(2, ctx.currentTime + start);
+    gain.gain.setValueAtTime(0, ctx.currentTime + start);
+    gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime + start);
+    osc.stop(ctx.currentTime + start + dur);
+  }
+
+  const SOUNDS = {
+    coin: {
+      name: 'Moedinha',
+      desc: 'Plin-plin estilo Hotmart',
+      icon: '🪙',
+      play: (ctx) => {
+        tone(ctx, 'sine', 988, 0, 0.35, 0.25);
+        tone(ctx, 'triangle', 1976, 0, 0.2, 0.08);
+        tone(ctx, 'sine', 1319, 0.12, 0.45, 0.25);
+        tone(ctx, 'triangle', 2638, 0.12, 0.25, 0.08);
+      },
+    },
+    coin2: {
+      name: 'Moeda Arcade',
+      desc: 'Estilo Super Mario',
+      icon: '👾',
+      play: (ctx) => {
+        tone(ctx, 'square', 988, 0, 0.08, 0.12);
+        tone(ctx, 'square', 1319, 0.08, 0.4, 0.12);
+        tone(ctx, 'sine', 1319, 0.08, 0.35, 0.1);
+      },
+    },
+    coin3: {
+      name: 'Moeda Tripla',
+      desc: 'Três moedas caindo',
+      icon: '💰',
+      play: (ctx) => {
+        tone(ctx, 'sine', 880, 0, 0.25, 0.2);
+        tone(ctx, 'triangle', 1760, 0, 0.15, 0.06);
+        tone(ctx, 'sine', 1109, 0.13, 0.25, 0.2);
+        tone(ctx, 'triangle', 2218, 0.13, 0.15, 0.06);
+        tone(ctx, 'sine', 1319, 0.26, 0.4, 0.25);
+        tone(ctx, 'triangle', 2638, 0.26, 0.25, 0.08);
+      },
+    },
+    cashRegister: {
+      name: 'Caixa Registradora',
+      desc: 'Cha-ching clássico',
+      icon: '🛒',
+      play: (ctx) => {
+        toneRamp(ctx, 'square', 2200, 3300, 0, 0.12, 0.15);
+        toneRamp(ctx, 'square', 3300, 4950, 0, 0.12, 0.1);
+        toneRamp(ctx, 'square', 2800, 4200, 0.12, 0.2, 0.15);
+        toneRamp(ctx, 'square', 4200, 6300, 0.12, 0.2, 0.1);
+        toneRamp(ctx, 'square', 5200, 7800, 0.15, 0.3, 0.05);
+        const now = ctx.currentTime;
+        const bufferSize = ctx.sampleRate * 0.15;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const d = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3) * 0.08;
+        const noise = ctx.createBufferSource();
+        const nf = ctx.createBiquadFilter();
+        const ng = ctx.createGain();
+        noise.buffer = buffer;
+        nf.type = 'highpass';
+        nf.frequency.value = 4000;
+        ng.gain.setValueAtTime(0.3, now + 0.3);
+        noise.connect(nf);
+        nf.connect(ng);
+        ng.connect(ctx.destination);
+        noise.start(now + 0.3);
+      },
+    },
+    bell: {
+      name: 'Sino',
+      desc: 'Ding suave e elegante',
+      icon: '🔔',
+      play: (ctx) => {
+        tone(ctx, 'sine', 1200, 0, 0.8, 0.25);
+        tone(ctx, 'sine', 2400, 0, 0.5, 0.08);
+        tone(ctx, 'sine', 3600, 0, 0.3, 0.04);
+        tone(ctx, 'triangle', 1200, 0, 0.6, 0.06);
+      },
+    },
+    success: {
+      name: 'Sucesso',
+      desc: 'Jingle de vitória',
+      icon: '✨',
+      play: (ctx) => {
+        tone(ctx, 'sine', 523, 0, 0.15, 0.2);
+        tone(ctx, 'sine', 659, 0.12, 0.15, 0.2);
+        tone(ctx, 'sine', 784, 0.24, 0.15, 0.2);
+        tone(ctx, 'sine', 1047, 0.36, 0.5, 0.25);
+        tone(ctx, 'triangle', 1047, 0.36, 0.4, 0.08);
+      },
+    },
+  };
+
   function playCashSound() {
     if (muted) return;
     ensureAudio();
-    const ctx = audioCtxRef.current;
-    const now = ctx.currentTime;
+    const sound = SOUNDS[selectedSound] || SOUNDS.coin;
+    sound.play(audioCtxRef.current);
+  }
 
-    // Som de moedinha estilo Hotmart — duas notas ascendentes "plin-plin"
-    function playCoin(freq, start, dur, vol) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + start);
-      gain.gain.setValueAtTime(vol, now + start);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now + start);
-      osc.stop(now + start + dur);
-    }
+  function playPreview(key) {
+    ensureAudio();
+    const sound = SOUNDS[key];
+    if (sound) sound.play(audioCtxRef.current);
+  }
 
-    // Harmônico sutil para dar brilho
-    function playHarmonic(freq, start, dur, vol) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now + start);
-      gain.gain.setValueAtTime(vol, now + start);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now + start);
-      osc.stop(now + start + dur);
-    }
-
-    // Nota 1 — B5 (988 Hz) com harmônico
-    playCoin(988, 0, 0.35, 0.25);
-    playHarmonic(1976, 0, 0.2, 0.08);
-
-    // Nota 2 — E6 (1319 Hz) com harmônico — "plin" mais agudo
-    playCoin(1319, 0.12, 0.45, 0.25);
-    playHarmonic(2638, 0.12, 0.25, 0.08);
+  function handleSelectSound(key) {
+    setSelectedSound(key);
+    localStorage.setItem('spacesales-sound', key);
+    ensureAudio();
+    SOUNDS[key].play(audioCtxRef.current);
   }
 
   // ── Handle new sale ──
@@ -435,6 +536,31 @@ export default function Home() {
         }
         .config-hint strong { color: var(--loja); font-weight: 600; }
 
+        .sound-grid { display: flex; flex-direction: column; gap: 8px; }
+        .sound-option {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 12px 16px; border-radius: 12px; cursor: pointer;
+          border: 1px solid var(--border); background: var(--bg);
+          transition: all 0.2s ease;
+        }
+        .sound-option:hover { border-color: rgba(255,255,255,0.15); background: var(--surface-2); }
+        .sound-option.selected {
+          border-color: var(--accent); background: rgba(0,230,138,0.06);
+          box-shadow: 0 0 12px var(--accent-glow);
+        }
+        .sound-option-left { display: flex; align-items: center; gap: 12px; }
+        .sound-option-icon { font-size: 24px; width: 36px; text-align: center; }
+        .sound-option-name { font-size: 14px; font-weight: 600; }
+        .sound-option.selected .sound-option-name { color: var(--accent); }
+        .sound-option-desc { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
+        .btn-preview {
+          width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border);
+          background: var(--surface-2); color: var(--text-dim); font-size: 12px;
+          cursor: pointer; display: flex; align-items: center; justify-content: center;
+          transition: all 0.2s;
+        }
+        .btn-preview:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
         @media (max-width: 768px) {
           .header { padding: 16px 20px; }
           .stats-bar { padding: 16px 20px; gap: 10px; }
@@ -555,6 +681,32 @@ export default function Home() {
                     <button className={`btn-copy ${copied ? 'copied' : ''}`} onClick={copyWebhook}>
                       {copied ? '✓ Copiado!' : '📋 Copiar'}
                     </button>
+                  </div>
+                </div>
+
+                <div className="config-section">
+                  <div className="config-label">🔊 Som da Notificação</div>
+                  <div className="sound-grid">
+                    {Object.entries(SOUNDS).map(([key, s]) => (
+                      <div
+                        key={key}
+                        className={`sound-option ${selectedSound === key ? 'selected' : ''}`}
+                        onClick={() => handleSelectSound(key)}
+                      >
+                        <div className="sound-option-left">
+                          <span className="sound-option-icon">{s.icon}</span>
+                          <div>
+                            <div className="sound-option-name">{s.name}</div>
+                            <div className="sound-option-desc">{s.desc}</div>
+                          </div>
+                        </div>
+                        <button
+                          className="btn-preview"
+                          onClick={(e) => { e.stopPropagation(); playPreview(key); }}
+                          title="Ouvir som"
+                        >▶</button>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
