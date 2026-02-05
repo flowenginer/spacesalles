@@ -24,6 +24,7 @@ export default function Home() {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [loadingSales, setLoadingSales] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [webhookUrl, setWebhookUrl] = useState('');
   useEffect(() => {
     setWebhookUrl(`${window.location.origin}/api/webhook`);
@@ -339,6 +340,8 @@ export default function Home() {
   const fmtMoney = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
   const fmtTime = (t) => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
+  const filteredSales = sourceFilter === 'all' ? sales : sales.filter(s => s.source === sourceFilter);
+
   const jsonExample = `{
   "data": {
     "id": 25016825788,
@@ -648,6 +651,30 @@ export default function Home() {
         }
         .btn-apply:hover { box-shadow: 0 0 20px var(--accent-glow); }
 
+        .source-filter { display: flex; align-items: center; gap: 8px; }
+        .source-filter-label {
+          font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+          color: var(--text-dim); margin-right: 4px;
+        }
+        .source-pill {
+          padding: 7px 16px; border-radius: 100px; border: 1px solid var(--border);
+          background: var(--surface); color: var(--text-dim); font-family: 'Outfit', sans-serif;
+          font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;
+        }
+        .source-pill:hover { border-color: rgba(255,255,255,0.15); color: var(--text); }
+        .source-pill.active.all {
+          background: var(--accent); color: var(--bg); border-color: var(--accent);
+          font-weight: 600; box-shadow: 0 0 12px var(--accent-glow);
+        }
+        .source-pill.active.loja {
+          background: var(--loja); color: #fff; border-color: var(--loja);
+          font-weight: 600; box-shadow: 0 0 12px var(--loja-glow);
+        }
+        .source-pill.active.shopee {
+          background: var(--shopee); color: #fff; border-color: var(--shopee);
+          font-weight: 600; box-shadow: 0 0 12px var(--shopee-glow);
+        }
+
         @media (max-width: 768px) {
           .header { padding: 16px 20px; }
           .stats-bar { padding: 16px 20px; gap: 10px; }
@@ -745,6 +772,21 @@ export default function Home() {
               <button className="btn-apply" onClick={applyCustomFilter}>Filtrar</button>
             </div>
           )}
+          <div className="source-filter">
+            <span className="source-filter-label">Canal:</span>
+            <button
+              className={`source-pill ${sourceFilter === 'all' ? 'active all' : ''}`}
+              onClick={() => setSourceFilter('all')}
+            >Todas</button>
+            <button
+              className={`source-pill ${sourceFilter === 'loja' ? 'active loja' : ''}`}
+              onClick={() => setSourceFilter('loja')}
+            >🏪 Loja</button>
+            <button
+              className={`source-pill ${sourceFilter === 'shopee' ? 'active shopee' : ''}`}
+              onClick={() => setSourceFilter('shopee')}
+            >🛒 Shopee</button>
+          </div>
         </div>
 
         <div className="main">
@@ -755,14 +797,14 @@ export default function Home() {
             <button className="btn-test" onClick={simulateSale}>⚡ Simular Venda</button>
           </div>
 
-          {sales.length === 0 ? (
+          {filteredSales.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon">📡</div>
-              <div className="empty-text">Aguardando vendas...</div>
-              <div className="empty-sub">Conectado ao Supabase Realtime</div>
+              <div className="empty-text">{sales.length === 0 ? 'Aguardando vendas...' : 'Nenhuma venda para este canal'}</div>
+              <div className="empty-sub">{sales.length === 0 ? 'Conectado ao Supabase Realtime' : `Mostrando: ${sourceFilter === 'loja' ? 'Loja' : 'Shopee'}`}</div>
             </div>
           ) : (
-            sales.map((sale) => (
+            filteredSales.map((sale) => (
               <div key={sale.id} className={`sale-card s-${sale.source} ${sale.isNew ? 'is-new' : ''}`}>
                 <div className="sale-icon">{sale.source === 'shopee' ? '🛒' : '🏪'}</div>
                 <div className="sale-info">
