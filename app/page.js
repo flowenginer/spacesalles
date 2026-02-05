@@ -20,6 +20,10 @@ export default function Home() {
   const newIdsRef = useRef(new Set());
 
   const [selectedSound, setSelectedSound] = useState('coin');
+  const [dateFilter, setDateFilter] = useState('today');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [loadingSales, setLoadingSales] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
   useEffect(() => {
     setWebhookUrl(`${window.location.origin}/api/webhook`);
@@ -197,28 +201,77 @@ export default function Home() {
     }, 2500);
   }, []);
 
+  // ── Date filter helpers ──
+  function getDateRange(filter) {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    switch (filter) {
+      case 'today':
+        return { from: todayStr, to: todayStr };
+      case 'yesterday':
+        return { from: yesterdayStr, to: yesterdayStr };
+      case '7days': {
+        const d = new Date(now);
+        d.setDate(d.getDate() - 6);
+        return { from: d.toISOString().split('T')[0], to: todayStr };
+      }
+      case 'thisMonth': {
+        const first = new Date(now.getFullYear(), now.getMonth(), 1);
+        return { from: first.toISOString().split('T')[0], to: todayStr };
+      }
+      case 'lastMonth': {
+        const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const last = new Date(now.getFullYear(), now.getMonth(), 0);
+        return { from: first.toISOString().split('T')[0], to: last.toISOString().split('T')[0] };
+      }
+      case 'custom':
+        return { from: customFrom || todayStr, to: customTo || todayStr };
+      default:
+        return { from: todayStr, to: todayStr };
+    }
+  }
+
+  async function loadSales(filter) {
+    setLoadingSales(true);
+    const { from, to } = getDateRange(filter);
+    const { data } = await supabase
+      .from('vendas')
+      .select('*')
+      .gte('data_venda', from)
+      .lte('data_venda', to)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (data && data.length > 0) {
+      setSales(data.map(s => ({ ...s, isNew: false })));
+      const t = data.length;
+      const l = data.filter(s => s.source === 'loja').length;
+      const sh = data.filter(s => s.source === 'shopee').length;
+      const r = data.reduce((acc, s) => acc + parseFloat(s.total || 0), 0);
+      setStats({ total: t, loja: l, shopee: sh, revenue: r });
+    } else {
+      setSales([]);
+      setStats({ total: 0, loja: 0, shopee: 0, revenue: 0 });
+    }
+    setLoadingSales(false);
+  }
+
+  function handleFilterChange(filter) {
+    setDateFilter(filter);
+    if (filter !== 'custom') loadSales(filter);
+  }
+
+  function applyCustomFilter() {
+    if (customFrom && customTo) loadSales('custom');
+  }
+
   // ── Load initial sales & subscribe to Realtime ──
   useEffect(() => {
-    async function loadInitial() {
-      const today = new Date().toISOString().split('T')[0];
-      const { data } = await supabase
-        .from('vendas')
-        .select('*')
-        .gte('data_venda', today)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (data && data.length > 0) {
-        setSales(data.map(s => ({ ...s, isNew: false })));
-        const t = data.length;
-        const l = data.filter(s => s.source === 'loja').length;
-        const sh = data.filter(s => s.source === 'shopee').length;
-        const r = data.reduce((acc, s) => acc + parseFloat(s.total || 0), 0);
-        setStats({ total: t, loja: l, shopee: sh, revenue: r });
-      }
-    }
-
-    loadInitial();
+    loadSales('today');
 
     const channel = supabase
       .channel('vendas-realtime')
@@ -561,6 +614,40 @@ export default function Home() {
         }
         .btn-preview:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
 
+        .filter-bar {
+          padding: 0 40px 0; display: flex; flex-direction: column; gap: 12px;
+        }
+        .filter-pills {
+          display: flex; gap: 8px; flex-wrap: wrap;
+        }
+        .filter-pill {
+          padding: 8px 18px; border-radius: 100px; border: 1px solid var(--border);
+          background: var(--surface); color: var(--text-dim); font-family: 'Outfit', sans-serif;
+          font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+        .filter-pill:hover { border-color: rgba(255,255,255,0.15); color: var(--text); }
+        .filter-pill.active {
+          background: var(--accent); color: var(--bg); border-color: var(--accent);
+          font-weight: 600; box-shadow: 0 0 16px var(--accent-glow);
+        }
+        .custom-date-row {
+          display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .date-input {
+          padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
+          background: var(--surface); color: var(--text); font-family: 'JetBrains Mono', monospace;
+          font-size: 13px; outline: none; transition: border-color 0.2s;
+        }
+        .date-input:focus { border-color: var(--accent); }
+        .date-sep { color: var(--text-dim); font-size: 13px; }
+        .btn-apply {
+          padding: 10px 22px; border-radius: 10px; border: 1px solid var(--accent);
+          background: var(--accent); color: var(--bg); font-family: 'Outfit', sans-serif;
+          font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-apply:hover { box-shadow: 0 0 20px var(--accent-glow); }
+
         @media (max-width: 768px) {
           .header { padding: 16px 20px; }
           .stats-bar { padding: 16px 20px; gap: 10px; }
@@ -572,6 +659,11 @@ export default function Home() {
           .big-notify-text { font-size: 28px; }
           .big-notify-amount { font-size: 40px; }
           .config-panel { width: 95%; }
+          .filter-bar { padding: 0 20px; }
+          .filter-pills { gap: 6px; }
+          .filter-pill { padding: 7px 14px; font-size: 12px; }
+          .custom-date-row { flex-direction: column; align-items: stretch; }
+          .date-input { width: 100%; }
         }
       `}</style>
 
@@ -618,9 +710,48 @@ export default function Home() {
           </div>
         </div>
 
+        <div className="filter-bar">
+          <div className="filter-pills">
+            {[
+              { key: 'today', label: 'Hoje' },
+              { key: 'yesterday', label: 'Ontem' },
+              { key: '7days', label: '7 dias' },
+              { key: 'thisMonth', label: 'Este mês' },
+              { key: 'lastMonth', label: 'Mês passado' },
+              { key: 'custom', label: 'Personalizado' },
+            ].map(f => (
+              <button
+                key={f.key}
+                className={`filter-pill ${dateFilter === f.key ? 'active' : ''}`}
+                onClick={() => handleFilterChange(f.key)}
+              >{f.label}</button>
+            ))}
+          </div>
+          {dateFilter === 'custom' && (
+            <div className="custom-date-row">
+              <input
+                type="date"
+                className="date-input"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+              <span className="date-sep">até</span>
+              <input
+                type="date"
+                className="date-input"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+              <button className="btn-apply" onClick={applyCustomFilter}>Filtrar</button>
+            </div>
+          )}
+        </div>
+
         <div className="main">
           <div className="section-header">
-            <div className="section-title">🔔 Vendas ao Vivo</div>
+            <div className="section-title">
+              {loadingSales ? '⏳ Carregando...' : `🔔 Vendas ${dateFilter === 'today' ? 'ao Vivo' : ''}`}
+            </div>
             <button className="btn-test" onClick={simulateSale}>⚡ Simular Venda</button>
           </div>
 
