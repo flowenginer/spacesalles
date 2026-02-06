@@ -33,3 +33,23 @@ CREATE POLICY "Allow insert from webhook" ON vendas
 CREATE POLICY "Allow select for frontend" ON vendas
   FOR SELECT TO anon
   USING (true);
+
+-- =============================================
+-- TABELA VENDEDORES (para ranking)
+-- =============================================
+
+-- 6. Criar tabela de vendedores (se ainda não existir)
+CREATE TABLE IF NOT EXISTS vendedores (
+  id BIGSERIAL PRIMARY KEY,
+  vendedor_id TEXT NOT NULL,
+  nome TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7. Habilitar RLS na tabela vendedores
+ALTER TABLE vendedores ENABLE ROW LEVEL SECURITY;
+
+-- 8. Policy para permitir SELECT via anon key (ranking no frontend)
+CREATE POLICY "Allow select vendedores" ON vendedores
+  FOR SELECT TO anon
+  USING (true);
