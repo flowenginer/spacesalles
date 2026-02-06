@@ -727,9 +727,27 @@ export default function Home() {
           transition: all 0.2s ease;
         }
         .rank-card.top-1 {
-          border-color: var(--gold); background: rgba(255,215,0,0.08);
-          box-shadow: 0 0 24px rgba(255,215,0,0.15), inset 0 0 30px rgba(255,215,0,0.03);
-          padding: 22px 20px;
+          border: none; background: rgba(255,215,0,0.08);
+          box-shadow: 0 0 30px rgba(255,215,0,0.2), 0 0 60px rgba(255,215,0,0.08);
+          padding: 24px 22px; position: relative; overflow: hidden;
+        }
+        .rank-card.top-1::before {
+          content: ''; position: absolute; inset: -2px; border-radius: 16px; z-index: -1;
+          background: conic-gradient(from var(--neon-angle, 0deg),
+            #ffd700, #ffaa00, #ff8800, #ffd700, #fff7aa, #ffd700);
+          animation: neonSpin 3s linear infinite;
+        }
+        .rank-card.top-1::after {
+          content: ''; position: absolute; inset: 2px; border-radius: 13px;
+          background: var(--bg); z-index: -1;
+        }
+        @property --neon-angle {
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }
+        @keyframes neonSpin {
+          to { --neon-angle: 360deg; }
         }
         .rank-card.top-2 {
           border-color: #aaa; background: rgba(192,192,192,0.05);
