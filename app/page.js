@@ -18,6 +18,7 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const audioCtxRef = useRef(null);
   const newIdsRef = useRef(new Set());
+  const prevRankingRef = useRef([]);
 
   const [selectedSound, setSelectedSound] = useState('coin');
   const [dateFilter, setDateFilter] = useState('today');
@@ -290,6 +291,57 @@ export default function Home() {
   }
 
   const ranking = buildRanking(sales, vendedores);
+
+  // ── Overtake detection ──
+  function playOvertakeSound() {
+    ensureAudio();
+    const ctx = audioCtxRef.current;
+    const now = ctx.currentTime;
+
+    // Whoosh — noise sweep
+    const bufLen = ctx.sampleRate * 0.3;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufLen, 2) * 0.12;
+    const noise = ctx.createBufferSource();
+    const nf = ctx.createBiquadFilter();
+    const ng = ctx.createGain();
+    noise.buffer = buf;
+    nf.type = 'bandpass';
+    nf.frequency.setValueAtTime(800, now);
+    nf.frequency.exponentialRampToValueAtTime(4000, now + 0.2);
+    nf.Q.value = 1;
+    ng.gain.setValueAtTime(0.25, now);
+    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    noise.connect(nf);
+    nf.connect(ng);
+    ng.connect(ctx.destination);
+    noise.start(now);
+
+    // Ascending power tones
+    tone(ctx, 'sine', 440, 0, 0.12, 0.15);
+    tone(ctx, 'sine', 660, 0.08, 0.12, 0.18);
+    tone(ctx, 'sine', 880, 0.16, 0.12, 0.2);
+    tone(ctx, 'sine', 1320, 0.24, 0.35, 0.25);
+    tone(ctx, 'triangle', 1320, 0.24, 0.3, 0.08);
+  }
+
+  useEffect(() => {
+    const prev = prevRankingRef.current;
+    if (prev.length > 0 && ranking.length > 0 && !muted) {
+      const prevPos = {};
+      prev.forEach((v, i) => { prevPos[v.id] = i; });
+      for (let i = 0; i < ranking.length; i++) {
+        const v = ranking[i];
+        const old = prevPos[v.id];
+        if (old !== undefined && i < old) {
+          playOvertakeSound();
+          break;
+        }
+      }
+    }
+    prevRankingRef.current = ranking;
+  }, [ranking.map(v => v.id).join(',')]);
 
   // ── Load initial sales & subscribe to Realtime ──
   useEffect(() => {
