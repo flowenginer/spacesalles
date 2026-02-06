@@ -25,6 +25,7 @@ export default function Home() {
   const [customTo, setCustomTo] = useState('');
   const [loadingSales, setLoadingSales] = useState(false);
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [vendedores, setVendedores] = useState([]);
   const [webhookUrl, setWebhookUrl] = useState('');
   useEffect(() => {
     setWebhookUrl(`${window.location.origin}/api/webhook`);
@@ -270,9 +271,32 @@ export default function Home() {
     if (customFrom && customTo) loadSales('custom');
   }
 
+  // ── Ranking ──
+  function buildRanking(salesData, vendedoresData) {
+    const map = {};
+    for (const v of vendedoresData) {
+      map[String(v.vendedor_id)] = { name: v.nome, count: 0, revenue: 0 };
+    }
+    for (const s of salesData) {
+      const vid = String(s.vendedor_id || '');
+      if (vid && vid !== '0' && map[vid]) {
+        map[vid].count += 1;
+        map[vid].revenue += parseFloat(s.total || 0);
+      }
+    }
+    return Object.entries(map)
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => b.revenue - a.revenue || b.count - a.count);
+  }
+
+  const ranking = buildRanking(sales, vendedores);
+
   // ── Load initial sales & subscribe to Realtime ──
   useEffect(() => {
     loadSales('today');
+    supabase.from('vendedores').select('*').then(({ data }) => {
+      if (data) setVendedores(data);
+    });
 
     const channel = supabase
       .channel('vendas-realtime')
@@ -448,7 +472,11 @@ export default function Home() {
         .c-loja .stat-value { color: var(--loja); }
         .c-shopee .stat-value { color: var(--shopee); }
         .c-revenue .stat-value { color: var(--gold); }
-        .main { padding: 0 40px 40px; display: flex; flex-direction: column; gap: 16px; }
+        .main-grid {
+          display: grid; grid-template-columns: 1fr 340px; gap: 24px;
+          padding: 0 40px 40px; align-items: start;
+        }
+        .main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
         .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
         .section-title { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); }
         .btn-test {
@@ -680,10 +708,60 @@ export default function Home() {
           font-weight: 600; box-shadow: 0 0 12px var(--shopee-glow);
         }
 
+        /* Ranking */
+        .ranking-panel {
+          background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+          padding: 24px; position: sticky; top: 90px;
+        }
+        .ranking-header { margin-bottom: 16px; }
+        .ranking-empty {
+          color: var(--text-dim); font-size: 14px; text-align: center; padding: 40px 0;
+        }
+        .ranking-list { display: flex; flex-direction: column; gap: 10px; }
+        .rank-card {
+          display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+          border-radius: 12px; border: 1px solid var(--border); background: var(--bg);
+          transition: all 0.2s ease;
+        }
+        .rank-card.top-1 {
+          border-color: var(--gold); background: rgba(255,215,0,0.06);
+          box-shadow: 0 0 16px rgba(255,215,0,0.1);
+        }
+        .rank-card.top-2 {
+          border-color: #aaa; background: rgba(192,192,192,0.04);
+        }
+        .rank-card.top-3 {
+          border-color: #cd7f32; background: rgba(205,127,50,0.04);
+        }
+        .rank-card.last-place {
+          border-color: rgba(255,68,68,0.2); background: rgba(255,68,68,0.03);
+          opacity: 0.7;
+        }
+        .rank-position {
+          width: 36px; text-align: center; flex-shrink: 0;
+        }
+        .rank-medal { font-size: 24px; }
+        .rank-number {
+          font-size: 16px; font-weight: 700; color: var(--text-dim);
+          font-family: 'JetBrains Mono', monospace;
+        }
+        .rank-info { flex: 1; min-width: 0; }
+        .rank-name { font-size: 15px; font-weight: 700; }
+        .rank-card.top-1 .rank-name { color: var(--gold); }
+        .rank-stats { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+        .rank-revenue {
+          font-family: 'JetBrains Mono', monospace; font-weight: 800;
+          font-size: 16px; color: var(--accent); text-align: right; white-space: nowrap;
+        }
+        .rank-revenue small {
+          font-size: 11px; font-weight: 500; color: var(--text-dim); margin-right: 2px;
+        }
+        .rank-card.last-place .rank-revenue { color: var(--text-dim); }
+
         @media (max-width: 768px) {
           .header { padding: 16px 20px; }
           .stats-bar { padding: 16px 20px; gap: 10px; }
-          .main { padding: 0 20px 20px; }
+          .main { padding: 0; }
           .stat-card { min-width: 140px; padding: 16px; }
           .stat-value { font-size: 24px; }
           .sale-card { flex-wrap: wrap; padding: 16px; }
@@ -691,6 +769,8 @@ export default function Home() {
           .big-notify-text { font-size: 28px; }
           .big-notify-amount { font-size: 40px; }
           .config-panel { width: 95%; }
+          .main-grid { grid-template-columns: 1fr; padding: 0 20px 20px; gap: 20px; }
+          .ranking-panel { position: static; }
           .filter-bar { padding: 0 20px; }
           .filter-pills { gap: 6px; }
           .filter-pill { padding: 7px 14px; font-size: 12px; }
@@ -794,43 +874,78 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="main">
-          <div className="section-header">
-            <div className="section-title">
-              {loadingSales ? '⏳ Carregando...' : `🔔 Vendas ${dateFilter === 'today' ? 'ao Vivo' : ''}`}
+        <div className="main-grid">
+          <div className="main">
+            <div className="section-header">
+              <div className="section-title">
+                {loadingSales ? '⏳ Carregando...' : `🔔 Vendas ${dateFilter === 'today' ? 'ao Vivo' : ''}`}
+              </div>
+              <button className="btn-test" onClick={simulateSale}>⚡ Simular Venda</button>
             </div>
-            <button className="btn-test" onClick={simulateSale}>⚡ Simular Venda</button>
+
+            {filteredSales.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📡</div>
+                <div className="empty-text">{sales.length === 0 ? 'Aguardando vendas...' : 'Nenhuma venda para este canal'}</div>
+                <div className="empty-sub">{sales.length === 0 ? 'Conectado ao Supabase Realtime' : `Mostrando: ${sourceFilter === 'loja' ? 'Loja' : 'Shopee'}`}</div>
+              </div>
+            ) : (
+              filteredSales.map((sale) => (
+                <div key={sale.id} className={`sale-card s-${sale.source} ${sale.isNew ? 'is-new' : ''}`}>
+                  <div className="sale-icon">{sale.source === 'shopee' ? '🛒' : '🏪'}</div>
+                  <div className="sale-info">
+                    <div className="sale-top">
+                      <span className="sale-source-badge">{sale.source === 'shopee' ? 'Shopee' : 'Loja'}</span>
+                      <span className="sale-number">#{sale.numero}{sale.numero_loja ? ` • ${sale.numero_loja}` : ''}</span>
+                    </div>
+                    <div className="sale-title">Nova venda realizada!</div>
+                    <div className="sale-meta">
+                      <span>📋 Pedido #{sale.numero}</span>
+                      <span>📅 {sale.data_venda}</span>
+                      {sale.vendedor_id > 0 && <span>👤 Vendedor ID: {sale.vendedor_id}</span>}
+                    </div>
+                  </div>
+                  <div className="sale-right">
+                    <div className="sale-amount"><small>R$</small> {fmtMoney(sale.total)}</div>
+                    <div className="sale-time">{fmtTime(sale.created_at)}</div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
-          {filteredSales.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">📡</div>
-              <div className="empty-text">{sales.length === 0 ? 'Aguardando vendas...' : 'Nenhuma venda para este canal'}</div>
-              <div className="empty-sub">{sales.length === 0 ? 'Conectado ao Supabase Realtime' : `Mostrando: ${sourceFilter === 'loja' ? 'Loja' : 'Shopee'}`}</div>
+          <div className="ranking-panel">
+            <div className="ranking-header">
+              <div className="section-title">🏆 Ranking Vendedores</div>
             </div>
-          ) : (
-            filteredSales.map((sale) => (
-              <div key={sale.id} className={`sale-card s-${sale.source} ${sale.isNew ? 'is-new' : ''}`}>
-                <div className="sale-icon">{sale.source === 'shopee' ? '🛒' : '🏪'}</div>
-                <div className="sale-info">
-                  <div className="sale-top">
-                    <span className="sale-source-badge">{sale.source === 'shopee' ? 'Shopee' : 'Loja'}</span>
-                    <span className="sale-number">#{sale.numero}{sale.numero_loja ? ` • ${sale.numero_loja}` : ''}</span>
-                  </div>
-                  <div className="sale-title">Nova venda realizada!</div>
-                  <div className="sale-meta">
-                    <span>📋 Pedido #{sale.numero}</span>
-                    <span>📅 {sale.data_venda}</span>
-                    {sale.vendedor_id > 0 && <span>👤 Vendedor ID: {sale.vendedor_id}</span>}
-                  </div>
-                </div>
-                <div className="sale-right">
-                  <div className="sale-amount"><small>R$</small> {fmtMoney(sale.total)}</div>
-                  <div className="sale-time">{fmtTime(sale.created_at)}</div>
-                </div>
+            {ranking.length === 0 ? (
+              <div className="ranking-empty">Nenhum vendedor cadastrado</div>
+            ) : (
+              <div className="ranking-list">
+                {ranking.map((v, i) => {
+                  const medals = ['🥇', '🥈', '🥉'];
+                  const isTop3 = i < 3;
+                  const isLast = i === ranking.length - 1 && ranking.length > 1;
+                  return (
+                    <div key={v.id} className={`rank-card ${isTop3 ? `top-${i + 1}` : ''} ${isLast && !isTop3 ? 'last-place' : ''}`}>
+                      <div className="rank-position">
+                        {isTop3 ? <span className="rank-medal">{medals[i]}</span> : <span className="rank-number">{i + 1}º</span>}
+                      </div>
+                      <div className="rank-info">
+                        <div className="rank-name">{v.name}</div>
+                        <div className="rank-stats">
+                          <span>{v.count} venda{v.count !== 1 ? 's' : ''}</span>
+                        </div>
+                      </div>
+                      <div className="rank-revenue">
+                        <small>R$</small> {fmtMoney(v.revenue)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))
-          )}
+            )}
+          </div>
         </div>
 
         {bigNotify !== null && (
