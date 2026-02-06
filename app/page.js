@@ -202,13 +202,13 @@ export default function Home() {
     }, 2500);
   }, []);
 
-  // ── Date filter helpers ──
+  // ── Date filter helpers (America/Sao_Paulo) ──
   function getDateRange(filter) {
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = dateSP(now);
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = dateSP(yesterday);
 
     switch (filter) {
       case 'today':
@@ -218,16 +218,16 @@ export default function Home() {
       case '7days': {
         const d = new Date(now);
         d.setDate(d.getDate() - 6);
-        return { from: d.toISOString().split('T')[0], to: todayStr };
+        return { from: dateSP(d), to: todayStr };
       }
       case 'thisMonth': {
         const first = new Date(now.getFullYear(), now.getMonth(), 1);
-        return { from: first.toISOString().split('T')[0], to: todayStr };
+        return { from: dateSP(first), to: todayStr };
       }
       case 'lastMonth': {
         const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const last = new Date(now.getFullYear(), now.getMonth(), 0);
-        return { from: first.toISOString().split('T')[0], to: last.toISOString().split('T')[0] };
+        return { from: dateSP(first), to: dateSP(last) };
       }
       case 'custom':
         return { from: customFrom || todayStr, to: customTo || todayStr };
@@ -303,7 +303,7 @@ export default function Home() {
         numero: Math.floor(13700 + Math.random() * 100),
         numeroLoja: isShopee ? `260206${Math.random().toString(36).substr(2, 7).toUpperCase()}` : '',
         total: parseFloat((Math.random() * 800 + 20).toFixed(2)),
-        data: new Date().toISOString().split('T')[0],
+        data: dateSP(new Date()),
         contato: { id: Math.floor(Math.random() * 999999999) },
         vendedor: { id: isShopee ? 0 : Math.floor(Math.random() * 999999999) },
         loja: { id: isShopee ? 204253495 : 0 },
@@ -337,8 +337,13 @@ export default function Home() {
   }
 
   // ── Format ──
+  const TZ = 'America/Sao_Paulo';
   const fmtMoney = (v) => parseFloat(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-  const fmtTime = (t) => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const fmtTime = (t) => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: TZ });
+
+  function dateSP(date) {
+    return date.toLocaleDateString('sv-SE', { timeZone: TZ });
+  }
 
   const filteredSales = sourceFilter === 'all' ? sales : sales.filter(s => s.source === sourceFilter);
 
