@@ -473,7 +473,7 @@ export default function Home() {
         .c-shopee .stat-value { color: var(--shopee); }
         .c-revenue .stat-value { color: var(--gold); }
         .main-grid {
-          display: grid; grid-template-columns: 1fr 340px; gap: 24px;
+          display: grid; grid-template-columns: 1fr 420px; gap: 24px;
           padding: 0 40px 40px; align-items: start;
         }
         .main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
@@ -710,51 +710,61 @@ export default function Home() {
 
         /* Ranking */
         .ranking-panel {
-          background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-          padding: 24px; position: sticky; top: 90px;
+          background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+          padding: 28px; position: sticky; top: 90px;
         }
-        .ranking-header { margin-bottom: 16px; }
+        .ranking-header {
+          margin-bottom: 20px; text-align: center;
+        }
+        .ranking-header .section-title { font-size: 16px; letter-spacing: 2px; }
         .ranking-empty {
           color: var(--text-dim); font-size: 14px; text-align: center; padding: 40px 0;
         }
-        .ranking-list { display: flex; flex-direction: column; gap: 10px; }
+        .ranking-list { display: flex; flex-direction: column; gap: 12px; }
         .rank-card {
-          display: flex; align-items: center; gap: 12px; padding: 14px 16px;
-          border-radius: 12px; border: 1px solid var(--border); background: var(--bg);
+          display: flex; align-items: center; gap: 14px; padding: 18px 20px;
+          border-radius: 14px; border: 1px solid var(--border); background: var(--bg);
           transition: all 0.2s ease;
         }
         .rank-card.top-1 {
-          border-color: var(--gold); background: rgba(255,215,0,0.06);
-          box-shadow: 0 0 16px rgba(255,215,0,0.1);
+          border-color: var(--gold); background: rgba(255,215,0,0.08);
+          box-shadow: 0 0 24px rgba(255,215,0,0.15), inset 0 0 30px rgba(255,215,0,0.03);
+          padding: 22px 20px;
         }
         .rank-card.top-2 {
-          border-color: #aaa; background: rgba(192,192,192,0.04);
+          border-color: #aaa; background: rgba(192,192,192,0.05);
+          box-shadow: 0 0 12px rgba(192,192,192,0.08);
         }
         .rank-card.top-3 {
-          border-color: #cd7f32; background: rgba(205,127,50,0.04);
+          border-color: #cd7f32; background: rgba(205,127,50,0.05);
+          box-shadow: 0 0 12px rgba(205,127,50,0.08);
         }
         .rank-card.last-place {
           border-color: rgba(255,68,68,0.2); background: rgba(255,68,68,0.03);
-          opacity: 0.7;
+          opacity: 0.6;
         }
         .rank-position {
-          width: 36px; text-align: center; flex-shrink: 0;
+          width: 44px; text-align: center; flex-shrink: 0;
         }
-        .rank-medal { font-size: 24px; }
+        .rank-medal { font-size: 32px; }
+        .rank-card.top-1 .rank-medal { font-size: 38px; filter: drop-shadow(0 0 6px rgba(255,215,0,0.5)); }
         .rank-number {
-          font-size: 16px; font-weight: 700; color: var(--text-dim);
+          font-size: 18px; font-weight: 700; color: var(--text-dim);
           font-family: 'JetBrains Mono', monospace;
         }
         .rank-info { flex: 1; min-width: 0; }
-        .rank-name { font-size: 15px; font-weight: 700; }
-        .rank-card.top-1 .rank-name { color: var(--gold); }
-        .rank-stats { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+        .rank-name { font-size: 17px; font-weight: 700; }
+        .rank-card.top-1 .rank-name { font-size: 20px; color: var(--gold); }
+        .rank-card.top-2 .rank-name { color: #ccc; }
+        .rank-card.top-3 .rank-name { color: #cd7f32; }
+        .rank-stats { font-size: 13px; color: var(--text-dim); margin-top: 3px; }
         .rank-revenue {
           font-family: 'JetBrains Mono', monospace; font-weight: 800;
-          font-size: 16px; color: var(--accent); text-align: right; white-space: nowrap;
+          font-size: 18px; color: var(--accent); text-align: right; white-space: nowrap;
         }
+        .rank-card.top-1 .rank-revenue { font-size: 22px; color: var(--gold); }
         .rank-revenue small {
-          font-size: 11px; font-weight: 500; color: var(--text-dim); margin-right: 2px;
+          font-size: 12px; font-weight: 500; color: var(--text-dim); margin-right: 2px;
         }
         .rank-card.last-place .rank-revenue { color: var(--text-dim); }
 
