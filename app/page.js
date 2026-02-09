@@ -424,7 +424,13 @@ export default function Home() {
   const filteredSales = sourceFilter === 'all' ? sales : sales.filter(s => s.source === sourceFilter);
 
   const vendedorMap = {};
-  for (const v of vendedores) vendedorMap[String(v.vendedor_id)] = v.nome;
+  for (const v of vendedores) vendedorMap[String(v.vendedor_id).trim()] = v.nome;
+
+  function getVendedorName(id) {
+    if (!id || id === 0 || id === '0') return null;
+    const key = String(id).trim();
+    return vendedorMap[key] || null;
+  }
 
   const jsonExample = `{
   "data": {
@@ -985,7 +991,7 @@ export default function Home() {
                     <div className="sale-meta">
                       <span>📋 Pedido #{sale.numero}</span>
                       <span>📅 {sale.data_venda}</span>
-                      {sale.vendedor_id > 0 && <span>👤 {vendedorMap[String(sale.vendedor_id)] || `ID: ${sale.vendedor_id}`}</span>}
+                      {sale.vendedor_id > 0 && <span>👤 {getVendedorName(sale.vendedor_id) || `ID: ${sale.vendedor_id}`}</span>}
                     </div>
                   </div>
                   <div className="sale-right">
