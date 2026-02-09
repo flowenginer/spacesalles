@@ -369,31 +369,6 @@ export default function Home() {
     };
   }, [handleNewSale]);
 
-  // ── Simulate sale ──
-  async function simulateSale() {
-    ensureAudio();
-    const isShopee = Math.random() > 0.5;
-    const body = {
-      data: {
-        id: Date.now(),
-        numero: Math.floor(13700 + Math.random() * 100),
-        numeroLoja: isShopee ? `260206${Math.random().toString(36).substr(2, 7).toUpperCase()}` : '',
-        total: parseFloat((Math.random() * 800 + 20).toFixed(2)),
-        data: dateSP(new Date()),
-        contato: { id: Math.floor(Math.random() * 999999999) },
-        vendedor: { id: isShopee ? 0 : Math.floor(Math.random() * 999999999) },
-        loja: { id: isShopee ? 204253495 : 0 },
-        situacao: { id: 6, valor: 0 },
-      },
-    };
-
-    await fetch('/api/webhook', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-  }
-
   // ── Copy to clipboard ──
   async function copyWebhook() {
     try {
@@ -540,12 +515,6 @@ export default function Home() {
         .main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
         .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
         .section-title { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); }
-        .btn-test {
-          background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);
-          font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500;
-          padding: 8px 20px; border-radius: 100px; cursor: pointer; transition: all 0.2s ease;
-        }
-        .btn-test:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
         .empty-state {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
           padding: 80px 20px; color: var(--text-dim); text-align: center;
@@ -969,7 +938,6 @@ export default function Home() {
               <div className="section-title">
                 {loadingSales ? '⏳ Carregando...' : `🔔 Vendas ${dateFilter === 'today' ? 'ao Vivo' : ''}`}
               </div>
-              <button className="btn-test" onClick={simulateSale}>⚡ Simular Venda</button>
             </div>
 
             {filteredSales.length === 0 ? (
