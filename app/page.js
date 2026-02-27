@@ -10,7 +10,7 @@ const supabase = createClient(
 
 export default function Home() {
   const [sales, setSales] = useState([]);
-  const [stats, setStats] = useState({ total: 0, loja: 0, shopee: 0, revenue: 0 });
+  const [stats, setStats] = useState({ total: 0, loja: 0, shopee: 0, particular: 0, revenue: 0 });
   const [connected, setConnected] = useState(false);
   const [muted, setMuted] = useState(false);
   const [bigNotify, setBigNotify] = useState(null);
@@ -25,7 +25,7 @@ export default function Home() {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [loadingSales, setLoadingSales] = useState(false);
-  const [sourceFilter, setSourceFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('loja');
   const [vendedores, setVendedores] = useState([]);
   const [webhookUrl, setWebhookUrl] = useState('');
   useEffect(() => {
@@ -191,6 +191,7 @@ export default function Home() {
       total: prev.total + 1,
       loja: prev.loja + (sale.source === 'loja' ? 1 : 0),
       shopee: prev.shopee + (sale.source === 'shopee' ? 1 : 0),
+      particular: prev.particular + (sale.source === 'particular' ? 1 : 0),
       revenue: prev.revenue + parseFloat(sale.total || 0),
     }));
 
@@ -254,11 +255,12 @@ export default function Home() {
       const t = data.length;
       const l = data.filter(s => s.source === 'loja').length;
       const sh = data.filter(s => s.source === 'shopee').length;
+      const p = data.filter(s => s.source === 'particular').length;
       const r = data.reduce((acc, s) => acc + parseFloat(s.total || 0), 0);
-      setStats({ total: t, loja: l, shopee: sh, revenue: r });
+      setStats({ total: t, loja: l, shopee: sh, particular: p, revenue: r });
     } else {
       setSales([]);
-      setStats({ total: 0, loja: 0, shopee: 0, revenue: 0 });
+      setStats({ total: 0, loja: 0, shopee: 0, particular: 0, revenue: 0 });
     }
     setLoadingSales(false);
   }
@@ -398,6 +400,17 @@ export default function Home() {
 
   const filteredSales = sourceFilter === 'all' ? sales : sales.filter(s => s.source === sourceFilter);
 
+  const displayStats = (() => {
+    const src = filteredSales;
+    return {
+      total: src.length,
+      loja: src.filter(s => s.source === 'loja').length,
+      shopee: src.filter(s => s.source === 'shopee').length,
+      particular: src.filter(s => s.source === 'particular').length,
+      revenue: src.reduce((acc, s) => acc + parseFloat(s.total || 0), 0),
+    };
+  })();
+
   const vendedorMap = {};
   for (const v of vendedores) vendedorMap[String(v.vendedor_id).trim()] = v.nome;
 
@@ -434,6 +447,7 @@ export default function Home() {
           --text: #e8e8f0; --text-dim: #7a7a90; --accent: #00e68a; --accent-glow: rgba(0,230,138,0.15);
           --shopee: #ee4d2d; --shopee-glow: rgba(238,77,45,0.15);
           --loja: #4d9aff; --loja-glow: rgba(77,154,255,0.15);
+          --particular: #a855f7; --particular-glow: rgba(168,85,247,0.15);
           --gold: #ffd700;
         }
         body {
@@ -498,6 +512,7 @@ export default function Home() {
         .stat-card.c-total::before { background: linear-gradient(90deg, var(--accent), #00b36b); }
         .stat-card.c-loja::before { background: linear-gradient(90deg, var(--loja), #3377cc); }
         .stat-card.c-shopee::before { background: linear-gradient(90deg, var(--shopee), #cc3322); }
+        .stat-card.c-particular::before { background: linear-gradient(90deg, var(--particular), #7c3aed); }
         .stat-card.c-revenue::before { background: linear-gradient(90deg, var(--gold), #cc9900); }
         .stat-label {
           font-size: 12px; font-weight: 500; text-transform: uppercase;
@@ -507,6 +522,7 @@ export default function Home() {
         .c-total .stat-value { color: var(--accent); }
         .c-loja .stat-value { color: var(--loja); }
         .c-shopee .stat-value { color: var(--shopee); }
+        .c-particular .stat-value { color: var(--particular); }
         .c-revenue .stat-value { color: var(--gold); }
         .main-grid {
           display: grid; grid-template-columns: 1fr 420px; gap: 24px;
@@ -531,6 +547,7 @@ export default function Home() {
         .sale-card.is-new { animation: slideIn 0.5s cubic-bezier(0.16,1,0.3,1), glow 2s ease-out; }
         .sale-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
         .sale-card.s-loja::before { background: var(--loja); }
+        .sale-card.s-particular::before { background: var(--particular); }
         .sale-card.s-shopee::before { background: var(--shopee); }
         @keyframes slideIn {
           from { opacity: 0; transform: translateY(-30px) scale(0.97); }
@@ -545,6 +562,7 @@ export default function Home() {
           align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
         }
         .s-shopee .sale-icon { background: var(--shopee-glow); border: 1px solid rgba(238,77,45,0.2); }
+        .s-particular .sale-icon { background: var(--particular-glow); border: 1px solid rgba(168,85,247,0.2); }
         .s-loja .sale-icon { background: var(--loja-glow); border: 1px solid rgba(77,154,255,0.2); }
         .sale-info { flex: 1; min-width: 0; }
         .sale-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
@@ -553,6 +571,7 @@ export default function Home() {
           letter-spacing: 0.8px; padding: 3px 10px; border-radius: 6px;
         }
         .s-shopee .sale-source-badge { background: var(--shopee-glow); color: var(--shopee); }
+        .s-particular .sale-source-badge { background: var(--particular-glow); color: var(--particular); }
         .s-loja .sale-source-badge { background: var(--loja-glow); color: var(--loja); }
         .sale-number { font-size: 13px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim); }
         .sale-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
@@ -733,6 +752,10 @@ export default function Home() {
           background: var(--loja); color: #fff; border-color: var(--loja);
           font-weight: 600; box-shadow: 0 0 12px var(--loja-glow);
         }
+        .source-pill.active.particular {
+          background: var(--particular); color: #fff; border-color: var(--particular);
+          font-weight: 600; box-shadow: 0 0 12px var(--particular-glow);
+        }
         .source-pill.active.shopee {
           background: var(--shopee); color: #fff; border-color: var(--shopee);
           font-weight: 600; box-shadow: 0 0 12px var(--shopee-glow);
@@ -864,19 +887,23 @@ export default function Home() {
         <div className="stats-bar">
           <div className="stat-card c-total">
             <div className="stat-label">Total Vendas</div>
-            <div className="stat-value">{stats.total}</div>
+            <div className="stat-value">{displayStats.total}</div>
           </div>
           <div className="stat-card c-loja">
-            <div className="stat-label">Loja</div>
-            <div className="stat-value">{stats.loja}</div>
+            <div className="stat-label">Time de Vendas</div>
+            <div className="stat-value">{displayStats.loja}</div>
           </div>
           <div className="stat-card c-shopee">
             <div className="stat-label">Shopee</div>
-            <div className="stat-value">{stats.shopee}</div>
+            <div className="stat-value">{displayStats.shopee}</div>
+          </div>
+          <div className="stat-card c-particular">
+            <div className="stat-label">Particular</div>
+            <div className="stat-value">{displayStats.particular}</div>
           </div>
           <div className="stat-card c-revenue">
             <div className="stat-label">Faturamento</div>
-            <div className="stat-value">R$ {fmtMoney(stats.revenue)}</div>
+            <div className="stat-value">R$ {fmtMoney(displayStats.revenue)}</div>
           </div>
         </div>
 
@@ -924,7 +951,11 @@ export default function Home() {
             <button
               className={`source-pill ${sourceFilter === 'loja' ? 'active loja' : ''}`}
               onClick={() => setSourceFilter('loja')}
-            >🏪 Loja</button>
+            >🏪 Time de Vendas</button>
+            <button
+              className={`source-pill ${sourceFilter === 'particular' ? 'active particular' : ''}`}
+              onClick={() => setSourceFilter('particular')}
+            >🏠 Particular</button>
             <button
               className={`source-pill ${sourceFilter === 'shopee' ? 'active shopee' : ''}`}
               onClick={() => setSourceFilter('shopee')}
@@ -944,15 +975,15 @@ export default function Home() {
               <div className="empty-state">
                 <div className="empty-icon">📡</div>
                 <div className="empty-text">{sales.length === 0 ? 'Aguardando vendas...' : 'Nenhuma venda para este canal'}</div>
-                <div className="empty-sub">{sales.length === 0 ? 'Conectado ao Supabase Realtime' : `Mostrando: ${sourceFilter === 'loja' ? 'Loja' : 'Shopee'}`}</div>
+                <div className="empty-sub">{sales.length === 0 ? 'Conectado ao Supabase Realtime' : `Mostrando: ${sourceFilter === 'loja' ? 'Time de Vendas' : sourceFilter === 'particular' ? 'Particular' : sourceFilter === 'shopee' ? 'Shopee' : 'Todas'}`}</div>
               </div>
             ) : (
               filteredSales.map((sale) => (
                 <div key={sale.id} className={`sale-card s-${sale.source} ${sale.isNew ? 'is-new' : ''}`}>
-                  <div className="sale-icon">{sale.source === 'shopee' ? '🛒' : '🏪'}</div>
+                  <div className="sale-icon">{sale.source === 'shopee' ? '🛒' : sale.source === 'particular' ? '🏠' : '🏪'}</div>
                   <div className="sale-info">
                     <div className="sale-top">
-                      <span className="sale-source-badge">{sale.source === 'shopee' ? 'Shopee' : 'Loja'}</span>
+                      <span className="sale-source-badge">{sale.source === 'shopee' ? 'Shopee' : sale.source === 'particular' ? 'Particular' : 'Time de Vendas'}</span>
                       <span className="sale-number">#{sale.numero}{sale.numero_loja ? ` • ${sale.numero_loja}` : ''}</span>
                     </div>
                     <div className="sale-title">Nova venda realizada!</div>

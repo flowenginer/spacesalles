@@ -13,7 +13,9 @@ export async function POST(request) {
     // Support both direct body and array format from n8n
     const raw = Array.isArray(body) ? body[0]?.body?.data : body?.data || body;
 
-    const isShopee = raw.numeroLoja && raw.numeroLoja !== '' && raw.loja?.id > 0;
+    const lojaId = raw.loja?.id || 0;
+    const isShopee = raw.numeroLoja && raw.numeroLoja !== '' && lojaId > 0 && lojaId !== 205415370;
+    const isParticular = lojaId === 205415370;
 
     const record = {
       venda_id: raw.id,
@@ -23,9 +25,9 @@ export async function POST(request) {
       data_venda: raw.data,
       contato_id: raw.contato?.id || null,
       vendedor_id: raw.vendedor?.id || null,
-      loja_id: raw.loja?.id || 0,
+      loja_id: lojaId,
       situacao_id: raw.situacao?.id || null,
-      source: isShopee ? 'shopee' : 'loja',
+      source: isShopee ? 'shopee' : isParticular ? 'particular' : 'loja',
     };
 
     const { data, error } = await supabase.from('vendas').insert([record]).select();
