@@ -25,7 +25,7 @@ export default function Home() {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [loadingSales, setLoadingSales] = useState(false);
-  const [sourceFilter, setSourceFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('loja');
   const [vendedores, setVendedores] = useState([]);
   const [webhookUrl, setWebhookUrl] = useState('');
   useEffect(() => {
@@ -399,6 +399,17 @@ export default function Home() {
   }
 
   const filteredSales = sourceFilter === 'all' ? sales : sales.filter(s => s.source === sourceFilter);
+
+  const displayStats = (() => {
+    const src = filteredSales;
+    return {
+      total: src.length,
+      loja: src.filter(s => s.source === 'loja').length,
+      shopee: src.filter(s => s.source === 'shopee').length,
+      particular: src.filter(s => s.source === 'particular').length,
+      revenue: src.reduce((acc, s) => acc + parseFloat(s.total || 0), 0),
+    };
+  })();
 
   const vendedorMap = {};
   for (const v of vendedores) vendedorMap[String(v.vendedor_id).trim()] = v.nome;
@@ -876,23 +887,23 @@ export default function Home() {
         <div className="stats-bar">
           <div className="stat-card c-total">
             <div className="stat-label">Total Vendas</div>
-            <div className="stat-value">{stats.total}</div>
+            <div className="stat-value">{displayStats.total}</div>
           </div>
           <div className="stat-card c-loja">
-            <div className="stat-label">Loja</div>
-            <div className="stat-value">{stats.loja}</div>
+            <div className="stat-label">Time de Vendas</div>
+            <div className="stat-value">{displayStats.loja}</div>
           </div>
           <div className="stat-card c-shopee">
             <div className="stat-label">Shopee</div>
-            <div className="stat-value">{stats.shopee}</div>
+            <div className="stat-value">{displayStats.shopee}</div>
           </div>
           <div className="stat-card c-particular">
             <div className="stat-label">Particular</div>
-            <div className="stat-value">{stats.particular}</div>
+            <div className="stat-value">{displayStats.particular}</div>
           </div>
           <div className="stat-card c-revenue">
             <div className="stat-label">Faturamento</div>
-            <div className="stat-value">R$ {fmtMoney(stats.revenue)}</div>
+            <div className="stat-value">R$ {fmtMoney(displayStats.revenue)}</div>
           </div>
         </div>
 
@@ -940,7 +951,7 @@ export default function Home() {
             <button
               className={`source-pill ${sourceFilter === 'loja' ? 'active loja' : ''}`}
               onClick={() => setSourceFilter('loja')}
-            >🏪 Loja</button>
+            >🏪 Time de Vendas</button>
             <button
               className={`source-pill ${sourceFilter === 'particular' ? 'active particular' : ''}`}
               onClick={() => setSourceFilter('particular')}
@@ -964,7 +975,7 @@ export default function Home() {
               <div className="empty-state">
                 <div className="empty-icon">📡</div>
                 <div className="empty-text">{sales.length === 0 ? 'Aguardando vendas...' : 'Nenhuma venda para este canal'}</div>
-                <div className="empty-sub">{sales.length === 0 ? 'Conectado ao Supabase Realtime' : `Mostrando: ${sourceFilter === 'loja' ? 'Loja' : 'Shopee'}`}</div>
+                <div className="empty-sub">{sales.length === 0 ? 'Conectado ao Supabase Realtime' : `Mostrando: ${sourceFilter === 'loja' ? 'Time de Vendas' : sourceFilter === 'particular' ? 'Particular' : sourceFilter === 'shopee' ? 'Shopee' : 'Todas'}`}</div>
               </div>
             ) : (
               filteredSales.map((sale) => (
@@ -972,7 +983,7 @@ export default function Home() {
                   <div className="sale-icon">{sale.source === 'shopee' ? '🛒' : sale.source === 'particular' ? '🏠' : '🏪'}</div>
                   <div className="sale-info">
                     <div className="sale-top">
-                      <span className="sale-source-badge">{sale.source === 'shopee' ? 'Shopee' : sale.source === 'particular' ? 'Particular' : 'Loja'}</span>
+                      <span className="sale-source-badge">{sale.source === 'shopee' ? 'Shopee' : sale.source === 'particular' ? 'Particular' : 'Time de Vendas'}</span>
                       <span className="sale-number">#{sale.numero}{sale.numero_loja ? ` • ${sale.numero_loja}` : ''}</span>
                     </div>
                     <div className="sale-title">Nova venda realizada!</div>
