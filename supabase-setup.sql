@@ -53,3 +53,19 @@ ALTER TABLE vendedores ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow select vendedores" ON vendedores
   FOR SELECT TO anon
   USING (true);
+
+-- 9. Policy para permitir INSERT via anon key (cadastro pelo frontend)
+CREATE POLICY "Allow insert vendedores" ON vendedores
+  FOR INSERT TO anon
+  WITH CHECK (true);
+
+-- 10. Policy para permitir UPDATE via anon key (edição pelo frontend)
+CREATE POLICY "Allow update vendedores" ON vendedores
+  FOR UPDATE TO anon
+  USING (true)
+  WITH CHECK (true);
+
+-- 11. Policy para permitir DELETE via anon key (exclusão pelo frontend)
+CREATE POLICY "Allow delete vendedores" ON vendedores
+  FOR DELETE TO anon
+  USING (true);
